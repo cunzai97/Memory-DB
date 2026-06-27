@@ -1,0 +1,33 @@
+[project]
+name = "memory-db"
+version = "2.0.0"
+description = "Simple AI memory — store, retrieve, delete. Vector-backed semantic search."
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "cunzai97"}]
+
+dependencies = [
+    "mcp>=0.1.0",
+    "qdrant-client>=1.7.0,<2.0.0",
+    "httpx>=0.26.0,<1.0.0",
+]
+
+[project.scripts]
+memory-db = "memory_simple.server:main"
+memory-db-manage = "memory_simple.manage:main"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
