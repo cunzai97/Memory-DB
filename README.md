@@ -10,6 +10,12 @@ A lightweight vector-based memory system for AI agents. Store, retrieve, and del
 - **No knowledge graph, no FTS, no dashboard** — the model decides how to use memory, not the system
 - **6 files, 3 dependencies** — lightweight footprint, easy to understand and modify
 
+**You provide the embedding API.**
+
+- Use llama.cpp, Ollama, OpenAI, or any OpenAI-compatible endpoint
+- Switch models anytime — just change the `EMBEDDING_API_URL`
+- Rebuild vectors with `memory-db-manage rebuild` when switching models
+
 We removed everything that constrains the model. The memory system should be a tool, not a framework.
 
 ## Architecture
