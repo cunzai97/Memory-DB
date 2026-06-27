@@ -4,35 +4,13 @@ A lightweight vector-based memory system for AI agents. Store, retrieve, and del
 
 ## Why Memory-DB?
 
-**Most AI memory systems are over-engineered:**
+**Minimal tokens, maximum model freedom.**
 
-| Feature | Others | Memory-DB |
-|---------|--------|-----------|
-| Files | 80+ Python files | **6 files** |
-| Containers | 4+ Docker containers | **1 container** (Qdrant) |
-| Dependencies | 20+ packages | **3 packages** (mcp, qdrant-client, httpx) |
-| MCP Tools | 10+ tools | **3 tools** |
-| Token cost | 500+ tokens/turn | **~236 tokens/turn** |
-| Knowledge Graph | Required | **Removed** |
-| Full-text Search | Required | **Removed** |
-| Dashboard | Built-in | **Removed** |
-| Embedding Model | Bundled | **You own it** |
+- **~236 tokens/turn** — 3 tools with concise descriptions, no verbose instructions
+- **No knowledge graph, no FTS, no dashboard** — the model decides how to use memory, not the system
+- **6 files, 3 dependencies** — lightweight footprint, easy to understand and modify
 
-**What we kept:**
-- ✅ Vector storage (Qdrant)
-- ✅ Semantic search
-- ✅ Deduplication
-- ✅ Recall tracking
-- ✅ Admin CLI for maintenance
-
-**What we removed:**
-- ❌ Knowledge graph (FalkorDB)
-- ❌ Full-text search (FTS5)
-- ❌ Dashboard
-- ❌ Session management
-- ❌ Bundled embedding model
-
-**Result:** Minimal footprint, maximum control. You choose your embedding model, you own your data.
+We removed everything that constrains the model. The memory system should be a tool, not a framework.
 
 ## Architecture
 
