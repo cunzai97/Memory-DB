@@ -15,6 +15,36 @@
 
 一个向量数据库，一个嵌入 API。3 个 MCP 工具给 AI Agent，一个管理 CLI 给运维。
 
+## 安装
+
+```bash
+# 克隆仓库
+git clone https://github.com/cunzai97/Memory-DB.git
+cd Memory-DB
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate  # Windows 上用: venv\Scripts\activate
+
+# 安装依赖
+pip install -e .
+
+# 启动 Qdrant（必需）
+docker compose up -d
+```
+
+现在可以启动 MCP server：
+
+```bash
+memory-db  # 启动 MCP server
+```
+
+或使用管理 CLI：
+
+```bash
+memory-db-manage list  # 列出所有记忆
+```
+
 ## 快速开始
 
 ### 前置条件

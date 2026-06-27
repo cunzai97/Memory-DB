@@ -15,6 +15,36 @@ A lightweight vector-based memory system for AI agents. Store, retrieve, and del
 
 One vector store, one embedding API. 3 MCP tools for AI agents, a management CLI for ops.
 
+## Installation
+
+```bash
+# Clone the repo
+git clone https://github.com/cunzai97/Memory-DB.git
+cd Memory-DB
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -e .
+
+# Start Qdrant (required)
+docker compose up -d
+```
+
+Now you can start the MCP server:
+
+```bash
+memory-db  # starts MCP server
+```
+
+Or use the admin CLI:
+
+```bash
+memory-db-manage list  # list all memories
+```
+
 ## Quick Start
 
 ### Prerequisites
