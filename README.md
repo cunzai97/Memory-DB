@@ -2,6 +2,38 @@
 
 A lightweight vector-based memory system for AI agents. Store, retrieve, and delete memories via semantic search. You own the embedding model; we handle the vectors.
 
+## Why Memory-DB?
+
+**Most AI memory systems are over-engineered:**
+
+| Feature | Others | Memory-DB |
+|---------|--------|-----------|
+| Files | 80+ Python files | **6 files** |
+| Containers | 4+ Docker containers | **1 container** (Qdrant) |
+| Dependencies | 20+ packages | **3 packages** (mcp, qdrant-client, httpx) |
+| MCP Tools | 10+ tools | **3 tools** |
+| Token cost | 500+ tokens/turn | **~236 tokens/turn** |
+| Knowledge Graph | Required | **Removed** |
+| Full-text Search | Required | **Removed** |
+| Dashboard | Built-in | **Removed** |
+| Embedding Model | Bundled | **You own it** |
+
+**What we kept:**
+- ✅ Vector storage (Qdrant)
+- ✅ Semantic search
+- ✅ Deduplication
+- ✅ Recall tracking
+- ✅ Admin CLI for maintenance
+
+**What we removed:**
+- ❌ Knowledge graph (FalkorDB)
+- ❌ Full-text search (FTS5)
+- ❌ Dashboard
+- ❌ Session management
+- ❌ Bundled embedding model
+
+**Result:** Minimal footprint, maximum control. You choose your embedding model, you own your data.
+
 ## Architecture
 
 ```
@@ -109,7 +141,7 @@ Save a memory. Returns `{id, deduped}`.
 If the text is semantically similar to an existing memory (cosine ≥ threshold), the old one is replaced — entropy reduction built in. Set `dedup_threshold=0` to disable.
 
 ```
-store_memory(content="Python是动态类型语言")
+store_memory(content="Memory-DB 项目重构经验：从 80+ Python 文件精简到 6 个核心文件。移除了 knowledge graph (FalkorDB)、FTS5、dashboard、sessions，只保留 Qdrant + embedding API。MCP 工具从复杂变简单：store_memory、get_memories、delete_memory，约 236 tokens/turn。关键设计：语义去重（余弦相似度 ≥ 0.85）、recall_count 自动追踪、min_score 过滤、空内容校验 + 友好错误提示。依赖精简到：mcp、qdrant-client、httpx。", tags=["project", "refactor", "mcp", "memory-system"])
 → {"id": "a1b2c3d4-...", "deduped": false}
 
 store_memory(content="Python是一门动态类型的编程语言")
