@@ -22,7 +22,7 @@ async def store_memory(
     tags: list[str] | None = None,
     dedup_threshold: float = 0.85,
 ) -> dict[str, Any]:
-    """Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces semantically similar memories. Set to 0 to disable dedup. Use tags for categorization: ["user-preference"], ["project-decision"], etc. Returns: {id, deduped}. Content must be <1024 tokens (embedding API limit)."""
+    """Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces similar memories; set to 0 to disable. Returns: {id, deduped}. Must be <1024 tokens."""
     try:
         return await service.store_memory(
             content=content,
@@ -44,7 +44,7 @@ async def get_memories(
     limit: int = 5,
     min_score: float = 0.5,
 ) -> list[dict[str, Any]]:
-    """Search memories by cosine similarity. min_score=0.5 (default), 0.8+ for strict matching, <0.3 is noise. Each hit increments recall_count. Returns: sorted [{id, content, score, tags?, recall_count}] or []."""
+    """Search memories by cosine similarity. min_score=0.5 default; each hit increments recall_count. Returns: sorted [{id, content, score, ...}] or []."""
     try:
         return await service.get_memories(query=query, limit=limit, min_score=min_score)
     except Exception as e:
@@ -61,7 +61,7 @@ async def update_memory(
     content: str | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Update a memory's content and/or tags by ID. At least one of content or tags must be provided. If content is provided, the vector is re-encoded (semantic shift). Returns: {updated: true, id, changes: {content, tags}}."""
+    """Update a memory's content/tags by ID. At least one required; content change re-encodes vector. Returns: {updated: true, id, changes}."""
     try:
         return await service.update_memory(
             memory_id=memory_id,
