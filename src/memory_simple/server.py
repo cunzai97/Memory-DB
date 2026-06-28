@@ -22,10 +22,7 @@ async def store_memory(
     tags: list[str] | None = None,
     dedup_threshold: float = 0.85,
 ) -> dict[str, Any]:
-    """Store a memory (text → vector). Answer first, then store if useful.
-
-    dedup_threshold — cosine ≥ this replaces old memory (default 0.85, set 0 to disable).
-    Returns: {id, deduped}"""
+    """Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces semantically similar memories. Set to 0 to disable dedup. Use tags for categorization: ["user-preference"], ["project-decision"], etc. Returns: {id, deduped}."""
     try:
         return await service.store_memory(
             content=content,
@@ -47,10 +44,7 @@ async def get_memories(
     limit: int = 5,
     min_score: float = 0.5,
 ) -> list[dict[str, Any]]:
-    """Search memories by cosine similarity. Check before answering.
-
-    min_score — cutoff 0–1 (default 0.5); lower for broader search.
-    Returns: sorted [{id, content, score, tags?, recall_count...}] or []."""
+    """Search memories by cosine similarity. min_score=0.5 (default), 0.8+ for strict matching, <0.3 is noise. Each hit increments recall_count. Returns: sorted [{id, content, score, tags?, recall_count}] or []."""
     try:
         return await service.get_memories(query=query, limit=limit, min_score=min_score)
     except Exception as e:
@@ -63,9 +57,7 @@ async def get_memories(
 
 @mcp.tool()
 async def delete_memory(memory_id: str) -> dict[str, Any]:
-    """Delete a memory by ID. Delete if you find it wrong.
-
-    Returns: {deleted}"""
+    """Delete a memory by ID. Verify with get_memories first to confirm the right ID. Returns: {deleted, id}."""
     try:
         return await service.delete_memory(memory_id=memory_id)
     except Exception as e:

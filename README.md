@@ -6,7 +6,7 @@ A lightweight vector-based memory system for AI agents. Store, retrieve, and del
 
 **Minimal tokens, maximum model freedom.**
 
-- **~236 tokens/turn** — 3 tools with concise descriptions, no verbose instructions
+- **~130 tokens/turn** — 3 tools with single-line descriptions
 - **No knowledge graph, no FTS, no dashboard** — the model decides how to use memory, not the system
 - **6 files, 3 dependencies** — lightweight footprint, easy to understand and modify
 
@@ -120,12 +120,10 @@ mcp_servers:
 
 ### `store_memory(content, tags?, dedup_threshold=0.85)`
 
-Save a memory. Returns `{id, deduped}`.
-
-If the text is semantically similar to an existing memory (cosine ≥ threshold), the old one is replaced — entropy reduction built in. Set `dedup_threshold=0` to disable.
+Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces semantically similar memories; set to 0 to disable. Use tags for categorization: `["user-preference"]`, `["project-decision"]`, etc. Returns `{id, deduped}`.
 
 ```
-store_memory(content="Memory-DB 项目重构经验：从 80+ Python 文件精简到 6 个核心文件。移除了 knowledge graph (FalkorDB)、FTS5、dashboard、sessions，只保留 Qdrant + embedding API。MCP 工具从复杂变简单：store_memory、get_memories、delete_memory，约 236 tokens/turn。关键设计：语义去重（余弦相似度 ≥ 0.85）、recall_count 自动追踪、min_score 过滤、空内容校验 + 友好错误提示。依赖精简到：mcp、qdrant-client、httpx。", tags=["project", "refactor", "mcp", "memory-system"])
+store_memory(content="Memory-DB 项目重构经验：从 80+ Python 文件精简到 6 个核心文件，只保留 Qdrant + embedding API。MCP 工具约 130 tokens/turn（单行描述）。", tags=["project-refactor"])
 → {"id": "a1b2c3d4-...", "deduped": false}
 
 store_memory(content="Python是一门动态类型的编程语言")
@@ -134,7 +132,7 @@ store_memory(content="Python是一门动态类型的编程语言")
 
 ### `get_memories(query, limit=5, min_score=0.5)`
 
-Semantic search (cosine similarity). Returns top matches sorted by score descending. Results below `min_score` are filtered out — use 0.8+ for strict matching, lower (e.g. 0.2) for broader search. Each hit auto-increments `recall_count` and updates `last_recalled_at`.
+Search memories by cosine similarity. min_score=0.5 (default), 0.8+ for strict matching, <0.3 is noise. Each hit increments `recall_count`. Returns sorted list of `{id, content, score, tags?, recall_count}` or `[]`.
 
 ```
 get_memories(query="动态类型")
@@ -147,7 +145,7 @@ get_memories(query="动态类型", min_score=0.2)
 
 ### `delete_memory(memory_id)`
 
-Delete by ID. Returns `{deleted: true/false}` — false if the memory doesn't exist.
+Delete a memory by ID. Verify with `get_memories` first to confirm the right ID. Returns `{deleted, id}`.
 
 ```
 delete_memory(memory_id="a1b2c3d4-...")
@@ -156,7 +154,7 @@ delete_memory(memory_id="a1b2c3d4-...")
 
 ### Token Cost
 
-MCP tool definitions (descriptions + JSON schemas) cost **~236 tokens per turn** in the system prompt — about 464 chars of description text across all three tools. Self-explanatory parameters (`content`, `tags`, `query`, `limit`) are left out; only non-obvious ones (`dedup_threshold`, `min_score`) get explained. This is a one-time overhead added to every request, not cumulative.
+MCP tool definitions (descriptions + JSON schemas) cost **~130 tokens per turn** in the system prompt — about 528 chars of description text across all three tools, each as a single line. Behavioral instructions are removed from tool descriptions and placed in CLAUDE.md / system prompts instead. This is a one-time overhead added to every request, not cumulative.
 
 ## Management CLI
 

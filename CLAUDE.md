@@ -18,13 +18,13 @@ llama.cpp :8081 /v1/embeddings  (your model, your vectors)
 ## The 3 Tools (MCP)
 
 ### `store_memory(content, tags?, dedup_threshold=0.85)`
-Save a memory. Dedup threshold default 0.85 — semantically similar memories replace old ones (entropy reduction). Returns `{id, deduped: true/false}`. Empty content raises ValueError.
+Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces semantically similar memories; set to 0 to disable. Use tags for categorization: `["user-preference"]`, `["project-decision"]`, etc. Returns `{id, deduped}`.
 
 ### `get_memories(query, limit=5, min_score=0.5)`
-Semantic search (cosine similarity). Results below `min_score` are filtered out — use 0.8+ for strict matching, lower for broader search. Each hit increments `recall_count`. Returns sorted list of `{id, content, score, tags?, recall_count, last_recalled_at}`.
+Search memories by cosine similarity. min_score=0.5 (default), 0.8+ for strict matching, <0.3 is noise. Each hit increments `recall_count`. Returns sorted list of `{id, content, score, tags?, recall_count}` or `[]`.
 
 ### `delete_memory(memory_id)`
-Delete a memory by ID. Returns `{deleted: true/false, id}` — false if not found.
+Delete a memory by ID. Verify with `get_memories` first to confirm the right ID. Returns `{deleted, id}`.
 
 ## Management CLI (not exposed to MCP)
 
