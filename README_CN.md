@@ -157,6 +157,10 @@ update_memory(memory_id="a1b2c3d4-...", tags=["新标签"])
 → {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}}
 ```
 
+### Embedding API 限制
+
+内容必须 <1024 tokens（embedding API 限制），超出会报 400 错误。
+
 ### Token 成本
 
 MCP 工具定义（描述 + JSON schemas）每轮消耗约 **~236 tokens** 的系统提示词——三个工具共约 464 字符的描述文本。自解释参数（`content`、`tags`、`query`、`limit`）不写说明，只有需要解释的参数（`dedup_threshold`、`min_score`）才有描述。这是每次请求的一次性开销，不会累积。

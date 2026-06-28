@@ -26,6 +26,8 @@ Search memories by cosine similarity. min_score=0.5 (default), 0.8+ for strict m
 ### `update_memory(memory_id, content?, tags?)`
 Update a memory's content and/or tags by ID. At least one of content or tags must be provided. If content is provided, the vector is re-encoded (semantic shift). Returns: `{updated: true, id, changes: {content, tags}}`.
 
+**Embedding API limit**: content must be <1024 tokens, otherwise 400 error.
+
 ## Management CLI (not exposed to MCP)
 
 ```bash

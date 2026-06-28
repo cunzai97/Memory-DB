@@ -92,6 +92,8 @@ class MemoryService:
 
         If dedup_threshold > 0, checks for semantically duplicate memories first.
         A match ≥ threshold replaces the old one (entropy reduction).
+
+        Note: content must be <1024 tokens (embedding API limit).
         """
         content = content.strip()
         if not content:
@@ -200,6 +202,8 @@ class MemoryService:
         Returns:
             {updated: True, id, changes: {content, tags}} or
             {updated: False, id, error: "not_found" / "no_fields_provided"}
+
+        Note: content must be <1024 tokens (embedding API limit).
         """
         await self._ensure_collection()
 

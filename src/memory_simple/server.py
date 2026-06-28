@@ -22,7 +22,7 @@ async def store_memory(
     tags: list[str] | None = None,
     dedup_threshold: float = 0.85,
 ) -> dict[str, Any]:
-    """Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces semantically similar memories. Set to 0 to disable dedup. Use tags for categorization: ["user-preference"], ["project-decision"], etc. Returns: {id, deduped}."""
+    """Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces semantically similar memories. Set to 0 to disable dedup. Use tags for categorization: ["user-preference"], ["project-decision"], etc. Returns: {id, deduped}. Content must be <1024 tokens (embedding API limit)."""
     try:
         return await service.store_memory(
             content=content,

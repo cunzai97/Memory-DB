@@ -155,6 +155,10 @@ update_memory(memory_id="a1b2c3d4-...", tags=["new-tag"])
 → {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}}
 ```
 
+### Embedding API Limit
+
+Content must be <1024 tokens (embedding API limit). Longer text causes a 400 error.
+
 ### Token Cost
 
 MCP tool definitions (descriptions + JSON schemas) cost **~130 tokens per turn** in the system prompt — about 528 chars of description text across all three tools, each as a single line. Behavioral instructions are removed from tool descriptions and placed in CLAUDE.md / system prompts instead. This is a one-time overhead added to every request, not cumulative.
