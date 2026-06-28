@@ -59,22 +59,40 @@ async def get_memories(
 async def update_memory(
     memory_id: str,
     content: str | None = None,
+    old_text: str | None = None,
+    new_text: str | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Update a memory's content/tags by ID. At least one required; content change re-encodes vector. Returns: {updated: true, id, changes}."""
+    """Update a memory's content/tags by ID. Supports full replace (content) or partial replace (oldText→newText). Content change re-encodes vector. Returns: {updated: true, id, changes}."""
     try:
         return await service.update_memory(
             memory_id=memory_id,
             content=content,
+            old_text=old_text,
+            new_text=new_text,
             tags=tags,
         )
     except ValueError as e:
-        return {"error": str(e), "hint": 'update_memory(memory_id="uuid", content="new text")'}
+        return {"error": str(e), "hint": 'update_memory(memory_id="uuid", oldText="match", newText="replace")'}
     except Exception as e:
         logger.error("update_memory failed: %s", e)
         return {
             "error": f"MEMORY_LAYER_DEGRADED: {e}",
-            "hint": 'update_memory(memory_id="uuid", content="new text", tags=["tag"])',
+            "hint": 'update_memory(memory_id="uuid", oldText="match", newText="replace")',
+        }
+
+@mcp.tool()
+async def delete_memory(
+    memory_id: str,
+) -> dict[str, Any]:
+    """Delete a memory by ID. Returns: {deleted: true, id} or {deleted: false, id, error}."""
+    try:
+        return await service.delete_memory(memory_id=memory_id)
+    except Exception as e:
+        logger.error("delete_memory failed: %s", e)
+        return {
+            "error": f"MEMORY_LAYER_DEGRADED: {e}",
+            "hint": 'delete_memory(memory_id="uuid")',
         }
 
 

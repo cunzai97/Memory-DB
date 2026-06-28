@@ -8,18 +8,29 @@ import httpx
 EMBEDDING_API_URL = os.getenv("EMBEDDING_API_URL", "http://localhost:8081/v1/embeddings")
 
 
-async def encode(text: str, url: str | None = None) -> list[float]:
+async def encode(text: str, url: str | None = None, max_retries: int = 2) -> list[float]:
     """Encode a single string into a vector via the local embedding API."""
     api_url = url or EMBEDDING_API_URL
     # trust_env=False: don't let system proxy env vars break localhost connections
-    async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
-        resp = await client.post(
-            api_url,
-            json={"input": [text], "model": ""},
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["data"][0]["embedding"]
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
+                resp = await client.post(
+                    api_url,
+                    json={"input": [text], "model": ""},
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return data["data"][0]["embedding"]
+        except (httpx.ConnectError, httpx.TimeoutException) as e:
+            last_error = e
+            if attempt < max_retries:
+                continue  # retry on transient errors
+            raise
+        except Exception:
+            raise  # non-transient errors should fail fast
+    raise RuntimeError(f"Failed to encode after {max_retries + 1} attempts: {last_error}")
 
 
 async def health_check(url: str | None = None) -> tuple[bool, str]:

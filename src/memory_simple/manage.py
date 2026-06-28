@@ -36,7 +36,6 @@ async def cmd_import(args):
     admin = MemoryAdmin()
     result = await admin.import_from_json(
         path=args.path,
-        project_id=args.project_id or None,
         dedup_threshold=args.dedup_threshold,
     )
     print(json.dumps(result, ensure_ascii=False))

@@ -6,7 +6,7 @@
 
 **最小 token 消耗，最大模型自由度。**
 
-- **~236 tokens/轮** — 3 个工具，描述精简，不写冗长指令
+- **~250 tokens/轮** — 4 个工具，描述精简，不写冗长指令
 - **无知识图谱、无全文搜索、无仪表盘** — 模型决定如何使用记忆，而非系统限定
 - **6 个文件，3 个依赖** — 轻量 footprint，易懂易改
 
@@ -29,7 +29,7 @@
                                           └──────────────┘
 ```
 
-一个向量数据库，一个嵌入 API。3 个 MCP 工具给 AI Agent，一个管理 CLI 给运维。
+一个向量数据库，一个嵌入 API。4 个 MCP 工具给 AI Agent，一个管理 CLI 给运维。
 
 ## 安装
 
@@ -145,16 +145,32 @@ get_memories(query="动态类型")
 get_memories(query="动态类型", min_score=0.2)
 ```
 
-### `update_memory(memory_id, content?, tags?)`
+### `update_memory(memory_id, content?, oldText?, newText?, tags?)`
 
-按 ID 更新记忆的内容和/或标签。content 或 tags 至少提供一个。如果提供了 content，向量会重新编码（语义偏移）。返回 `{updated: true, id, changes: {content, tags}}`。
+按 ID 更新记忆的内容和/或标签。支持两种模式：
+- **完整替换**: `content="..."` — 替换整个内容，向量重新编码。
+- **部分替换**: `oldText="匹配" newText="替换"` — 查找精确子串并替换，向量重新编码。
+
+content、tags 或 (oldText+newText) 至少提供一个。`content` 和 `(oldText+newText)` 互斥。返回 `{updated: true, id, changes, update_type}`。
 
 ```
 update_memory(memory_id="a1b2c3d4-...", content="更新后的文本")
-→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}}
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}, "update_type": "full_replace"}
+
+update_memory(memory_id="a1b2c3d4-...", oldText="旧文本", newText="新文本")
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}, "update_type": "partial_replace"}
 
 update_memory(memory_id="a1b2c3d4-...", tags=["新标签"])
-→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}}
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}, "update_type": "tags_only"}
+```
+
+### `delete_memory(memory_id)`
+
+按 ID 删除记忆。返回 `{deleted: true, id}` 或 `{deleted: false, id, error}`。
+
+```
+delete_memory(memory_id="a1b2c3d4-...")
+→ {"deleted": true, "id": "a1b2c3d4-..."}
 ```
 
 ### Embedding API 限制
@@ -163,7 +179,7 @@ update_memory(memory_id="a1b2c3d4-...", tags=["新标签"])
 
 ### Token 成本
 
-MCP 工具定义（描述 + JSON schemas）每轮消耗约 **~236 tokens** 的系统提示词——三个工具共约 464 字符的描述文本。自解释参数（`content`、`tags`、`query`、`limit`）不写说明，只有需要解释的参数（`dedup_threshold`、`min_score`）才有描述。这是每次请求的一次性开销，不会累积。
+MCP 工具定义（描述 + JSON schemas）每轮消耗约 **~250 tokens** 的系统提示词——四个工具共约 600 字符的描述文本。自解释参数（`content`、`tags`、`query`、`limit`）不写说明，只有需要解释的参数（`dedup_threshold`、`min_score`）才有描述。这是每次请求的一次性开销，不会累积。
 
 ## 管理 CLI
 

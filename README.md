@@ -6,7 +6,7 @@ A lightweight vector-based memory system for AI agents. Store, retrieve, and del
 
 **Minimal tokens, maximum model freedom.**
 
-- **~130 tokens/turn** — 3 tools with single-line descriptions
+- **~150 tokens/turn** — 4 tools with single-line descriptions
 - **No knowledge graph, no FTS, no dashboard** — the model decides how to use memory, not the system
 - **6 files, 3 dependencies** — lightweight footprint, easy to understand and modify
 
@@ -29,7 +29,7 @@ We removed everything that constrains the model. The memory system should be a t
                                           └──────────────┘
 ```
 
-One vector store, one embedding API. 3 MCP tools for AI agents, a management CLI for ops.
+One vector store, one embedding API. 4 MCP tools for AI agents, a management CLI for ops.
 
 ## Installation
 
@@ -143,16 +143,32 @@ get_memories(query="动态类型")
 get_memories(query="动态类型", min_score=0.2)
 ```
 
-### `update_memory(memory_id, content?, tags?)`
+### `update_memory(memory_id, content?, oldText?, newText?, tags?)`
 
-Update a memory's content and/or tags by ID. At least one of content or tags must be provided. If content is provided, the vector is re-encoded (semantic shift). Returns `{updated: true, id, changes: {content, tags}}`.
+Update a memory's content and/or tags by ID. Supports two modes:
+- **Full replace**: `content="..."` — replaces entire content; vector is re-encoded.
+- **Partial replace**: `oldText="match" newText="replace"` — finds exact substring and substitutes; vector is re-encoded.
+
+At least one of content, tags, or (oldText+newText) must be provided. `content` and `(oldText+newText)` are mutually exclusive. Returns `{updated: true, id, changes, update_type}`.
 
 ```
 update_memory(memory_id="a1b2c3d4-...", content="updated text")
-→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}}
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}, "update_type": "full_replace"}
+
+update_memory(memory_id="a1b2c3d4-...", oldText="old", newText="new")
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}, "update_type": "partial_replace"}
 
 update_memory(memory_id="a1b2c3d4-...", tags=["new-tag"])
-→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}}
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}, "update_type": "tags_only"}
+```
+
+### `delete_memory(memory_id)`
+
+Delete a memory by ID. Returns `{deleted: true, id}` or `{deleted: false, id, error}`.
+
+```
+delete_memory(memory_id="a1b2c3d4-...")
+→ {"deleted": true, "id": "a1b2c3d4-..."}
 ```
 
 ### Embedding API Limit
@@ -161,7 +177,7 @@ Content must be <1024 tokens (embedding API limit). Longer text causes a 400 err
 
 ### Token Cost
 
-MCP tool definitions (descriptions + JSON schemas) cost **~130 tokens per turn** in the system prompt — about 528 chars of description text across all three tools, each as a single line. Behavioral instructions are removed from tool descriptions and placed in CLAUDE.md / system prompts instead. This is a one-time overhead added to every request, not cumulative.
+MCP tool definitions (descriptions + JSON schemas) cost **~150 tokens per turn** in the system prompt — about 600 chars of description text across all four tools, each as a single line. Behavioral instructions are removed from tool descriptions and placed in CLAUDE.md / system prompts instead. This is a one-time overhead added to every request, not cumulative.
 
 ## Management CLI
 

@@ -1,12 +1,12 @@
 # Memory-DB — CLAUDE.md
 
-Vector memory for AI agents: Qdrant (storage) + llama.cpp :8081 (embeddings). 3 MCP tools. Content must be <1024 tokens.
+Vector memory for AI agents: Qdrant (storage) + llama.cpp :8081 (embeddings). 4 MCP tools. Content must be <1024 tokens.
 
 ## The Harness
 
 **Assertive pushback is non-negotiable. See global `~/.claude/CLAUDE.md` § The Harness.**
 
-## The 3 Tools (MCP)
+## The 4 Tools (MCP)
 
 ### `store_memory(content, tags?, dedup_threshold=0.85)`
 Store text → vector. Dedup ≥ 0.85 replaces similar memories; set to 0 to disable. Returns `{id, deduped}`.
@@ -14,8 +14,15 @@ Store text → vector. Dedup ≥ 0.85 replaces similar memories; set to 0 to dis
 ### `get_memories(query, limit=5, min_score=0.5)`
 Search by cosine similarity. Each hit increments `recall_count`. Returns sorted `[{id, content, score, ...}]` or `[]`.
 
-### `update_memory(memory_id, content?, tags?)`
-Update content/tags by ID. At least one required; content change re-encodes vector. Returns `{updated: true, id, changes}`.
+### `update_memory(memory_id, content?, old_text?, new_text?, tags?)`
+Update memory by ID. Two modes:
+- **Full replace**: `content="..."` — replaces entire content; re-encodes vector.
+- **Partial replace**: `oldText="match" newText="replace"` — finds exact substring and substitutes it; re-encodes vector.
+
+At least one required. `content` and `(oldText+newText)` are mutually exclusive. Returns `{updated: true, id, changes, update_type}`.
+
+### `delete_memory(memory_id)`
+Delete a memory by ID. Returns `{deleted: true, id}` or `{deleted: false, id, error}`.
 
 ## Management CLI (not exposed to MCP)
 

@@ -15,7 +15,7 @@ from memory_simple.embedding import encode as _encode
 logger = logging.getLogger(__name__)
 
 
-def _payload_to_dict(point, include_score: bool = False) -> dict[str, Any]:
+def _payload_to_dict(point: Any, include_score: bool = False) -> dict[str, Any]:
     """Convert a Qdrant point to a plain dict."""
     payload = point.payload or {}
     result: dict[str, Any] = {
@@ -190,33 +190,48 @@ class MemoryService:
         self,
         memory_id: str,
         content: str | None = None,
+        old_text: str | None = None,
+        new_text: str | None = None,
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Update a memory by ID. Re-encode vector if content changed.
+        """Update a memory by ID. Supports full replace (content) or partial replace (old_text→new_text).
 
         Args:
             memory_id: The point ID to update.
-            content: New content text (optional). If provided, vector is re-encoded.
+            content: New content text (optional). Full replace; vector is re-encoded.
+            old_text: Exact substring to find in current content for partial replace.
+            new_text: Replacement text for old_text. Must be used together with old_text.
             tags: New tags list (optional). If provided, only payload is updated.
 
         Returns:
-            {updated: True, id, changes: {content, tags}} or
-            {updated: False, id, error: "not_found" / "no_fields_provided"}
+            {updated: True, id, changes: {content, tags}, update_type} or
+            {updated: False, id, error: "not_found" / "no_fields_provided" / ...}
 
         Note: content must be <1024 tokens (embedding API limit).
         """
         await self._ensure_collection()
 
         # Check existence first
-        retrieved = await self.client.retrieve(
-            collection_name=self.collection,
-            ids=[memory_id],
-        )
+        try:
+            retrieved = await self.client.retrieve(
+                collection_name=self.collection,
+                ids=[memory_id],
+            )
+        except Exception:
+            return {"updated": False, "id": memory_id, "error": "not_found"}
         if not retrieved:
             return {"updated": False, "id": memory_id, "error": "not_found"}
 
-        if content is None and tags is None:
+        if content is None and tags is None and old_text is None and new_text is None:
             return {"updated": False, "id": memory_id, "error": "no_fields_provided"}
+
+        # Conflict: content and (old_text/new_text) are mutually exclusive
+        if content is not None and (old_text is not None or new_text is not None):
+            return {"updated": False, "id": memory_id, "error": "conflict"}
+
+        # Incomplete partial replace
+        if (old_text is not None and new_text is None) or (new_text is not None and old_text is None):
+            return {"updated": False, "id": memory_id, "error": "incomplete_partial_replace"}
 
         # Build update payload
         update_payload: dict[str, Any] = {}
@@ -229,12 +244,32 @@ class MemoryService:
         if tags is not None:
             update_payload["tags"] = tags
 
-        # If content changed, re-encode vector to keep semantic consistency
+        # If content changed (full or partial), re-encode vector to keep semantic consistency
         if content is not None:
             new_vector = await _encode(content, url=self.embedding_url)
-            # Get original payload, merge with updates
             original_payload = retrieved[0].payload or {}
             merged_payload = {**original_payload, **update_payload}
+            await self.client.upsert(
+                collection_name=self.collection,
+                points=[models.PointStruct(
+                    id=memory_id,
+                    vector=new_vector,
+                    payload=merged_payload,
+                )],
+            )
+        elif old_text is not None and new_text is not None:
+            # Partial replace: find old_text in current content, substitute
+            original_payload = retrieved[0].payload or {}
+            current_content = str(original_payload.get("content", ""))
+            if old_text not in current_content:
+                return {"updated": False, "id": memory_id, "error": "old_text_not_found"}
+            new_content = current_content.replace(old_text, new_text)
+            if new_content == current_content:
+                return {"updated": False, "id": memory_id, "error": "no_change"}
+            new_vector = await _encode(new_content.strip(), url=self.embedding_url)
+            merged_payload = {**original_payload, "content": new_content.strip()}
+            if tags is not None:
+                merged_payload["tags"] = tags
             await self.client.upsert(
                 collection_name=self.collection,
                 points=[models.PointStruct(
@@ -257,4 +292,39 @@ class MemoryService:
         if tags is not None:
             changes["tags"] = True
 
-        return {"updated": True, "id": memory_id, "changes": changes}
+        update_type = "partial_replace" if (old_text is not None and new_text is not None) else (
+            "full_replace" if content is not None else "tags_only")
+        return {"updated": True, "id": memory_id, "changes": changes, "update_type": update_type}
+
+    async def delete_memory(
+        self,
+        memory_id: str,
+    ) -> dict[str, Any]:
+        """Delete a memory by ID.
+
+        Args:
+            memory_id: The point ID to delete.
+
+        Returns:
+            {deleted: True, id} or {deleted: False, id, error: "not_found"}
+        """
+        await self._ensure_collection()
+
+        # Check existence first
+        try:
+            retrieved = await self.client.retrieve(
+                collection_name=self.collection,
+                ids=[memory_id],
+            )
+        except Exception:
+            return {"deleted": False, "id": memory_id, "error": "not_found"}
+        if not retrieved:
+            return {"deleted": False, "id": memory_id, "error": "not_found"}
+
+        # Delete the point
+        await self.client.delete(
+            collection_name=self.collection,
+            points_selector=models.PointIdsList(points=[memory_id]),
+        )
+
+        return {"deleted": True, "id": memory_id}

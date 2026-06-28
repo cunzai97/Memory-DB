@@ -87,8 +87,13 @@ class MemoryAdmin:
         Re-encodes all texts with the current embedding model.
         """
         await self._ensure_collection()
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return {"imported": 0, "error": "file_not_found", "path": path}
+        except json.JSONDecodeError as e:
+            return {"imported": 0, "error": f"invalid_json: {e}", "path": path}
 
         memories = data.get("memories", [])
         imported = 0
