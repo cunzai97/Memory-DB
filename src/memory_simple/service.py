@@ -34,7 +34,7 @@ def _payload_to_dict(point, include_score: bool = False) -> dict[str, Any]:
 class MemoryService:
     """Memory service backed by Qdrant. Embeddings via local API.
 
-    Core methods only — store, get, delete. For admin operations, use MemoryAdmin.
+    Core methods only — store, get, update. For admin operations, use MemoryAdmin.
     """
 
     def __init__(
@@ -184,8 +184,23 @@ class MemoryService:
             if point.score >= min_score
         ]
 
-    async def delete_memory(self, memory_id: str) -> dict[str, Any]:
-        """Delete a memory by ID. Returns deleted=True only if the point existed."""
+    async def update_memory(
+        self,
+        memory_id: str,
+        content: str | None = None,
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Update a memory by ID. Re-encode vector if content changed.
+
+        Args:
+            memory_id: The point ID to update.
+            content: New content text (optional). If provided, vector is re-encoded.
+            tags: New tags list (optional). If provided, only payload is updated.
+
+        Returns:
+            {updated: True, id, changes: {content, tags}} or
+            {updated: False, id, error: "not_found" / "no_fields_provided"}
+        """
         await self._ensure_collection()
 
         # Check existence first
@@ -194,10 +209,48 @@ class MemoryService:
             ids=[memory_id],
         )
         if not retrieved:
-            return {"deleted": False, "id": memory_id}
+            return {"updated": False, "id": memory_id, "error": "not_found"}
 
-        await self.client.delete(
-            collection_name=self.collection,
-            points_selector=models.PointIdsList(points=[memory_id]),
-        )
-        return {"deleted": True, "id": memory_id}
+        if content is None and tags is None:
+            return {"updated": False, "id": memory_id, "error": "no_fields_provided"}
+
+        # Build update payload
+        update_payload: dict[str, Any] = {}
+        if content is not None:
+            content = content.strip()
+            if not content:
+                raise ValueError("content must be non-empty")
+            update_payload["content"] = content
+
+        if tags is not None:
+            update_payload["tags"] = tags
+
+        # If content changed, re-encode vector to keep semantic consistency
+        if content is not None:
+            new_vector = await _encode(content, url=self.embedding_url)
+            # Get original payload, merge with updates
+            original_payload = retrieved[0].payload or {}
+            merged_payload = {**original_payload, **update_payload}
+            await self.client.upsert(
+                collection_name=self.collection,
+                points=[models.PointStruct(
+                    id=memory_id,
+                    vector=new_vector,
+                    payload=merged_payload,
+                )],
+            )
+        else:
+            # Only tags changed — use set_payload (no vector change)
+            await self.client.set_payload(
+                collection_name=self.collection,
+                payload={"tags": tags},
+                points=[memory_id],
+            )
+
+        changes = {}
+        if content is not None:
+            changes["content"] = True
+        if tags is not None:
+            changes["tags"] = True
+
+        return {"updated": True, "id": memory_id, "changes": changes}

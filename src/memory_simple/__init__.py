@@ -1,7 +1,7 @@
 """Memory-DB — minimal AI memory system.
 
 Core:
-  - MemoryService: store, get, delete (for MCP tools)
+  - MemoryService: store, get, update (for MCP tools)
   - MemoryAdmin: list, export, import, rebuild, purge (for CLI)
 """
 

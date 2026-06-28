@@ -143,13 +143,16 @@ get_memories(query="动态类型")
 get_memories(query="动态类型", min_score=0.2)
 ```
 
-### `delete_memory(memory_id)`
+### `update_memory(memory_id, content?, tags?)`
 
-Delete a memory by ID. Verify with `get_memories` first to confirm the right ID. Returns `{deleted, id}`.
+Update a memory's content and/or tags by ID. At least one of content or tags must be provided. If content is provided, the vector is re-encoded (semantic shift). Returns `{updated: true, id, changes: {content, tags}}`.
 
 ```
-delete_memory(memory_id="a1b2c3d4-...")
-→ {"deleted": true, "id": "a1b2c3d4-..."}
+update_memory(memory_id="a1b2c3d4-...", content="updated text")
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}}
+
+update_memory(memory_id="a1b2c3d4-...", tags=["new-tag"])
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}}
 ```
 
 ### Token Cost
@@ -231,7 +234,7 @@ Each stored memory carries this payload in Qdrant:
 ```
 src/memory_simple/
 ├── embedding.py   # Embedding API client (httpx)
-├── service.py     # MemoryService — core store/get/delete
+├── service.py     # MemoryService — core store/get/update
 ├── admin.py       # MemoryAdmin — backup/import/rebuild/purge
 ├── server.py      # MCP server — exposes 3 tools
 └── manage.py      # CLI — admin operations

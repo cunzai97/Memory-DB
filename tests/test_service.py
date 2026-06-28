@@ -130,23 +130,107 @@ async def test_get_memories_min_score(svc, mock_qdrant):
 
 
 @pytest.mark.asyncio
-async def test_delete_memory_exists(svc, mock_qdrant):
-    mock_qdrant.retrieve.return_value = [MagicMock()]
+async def test_update_memory_content_only(svc, mock_qdrant):
+    mock_point = MagicMock()
+    mock_point.payload = {
+        "content": "old content",
+        "created_at": "2026-01-01T00:00:00Z",
+        "recall_count": 0,
+    }
+    mock_qdrant.retrieve.return_value = [mock_point]
 
-    result = await svc.delete_memory(memory_id="test-id")
-    assert result["deleted"] is True
+    result = await svc.update_memory(memory_id="test-id", content="new content")
+    assert result["updated"] is True
     assert result["id"] == "test-id"
-    mock_qdrant.delete.assert_called_once()
+    assert result["changes"]["content"] is True
+
+    # Should upsert with new vector (not delete)
+    mock_qdrant.upsert.assert_called_once()
+    call_kwargs = mock_qdrant.upsert.call_args.kwargs
+    point = call_kwargs["points"][0]
+    assert point.id == "test-id"
+    assert point.payload["content"] == "new content"
+    assert len(point.vector) == 1024  # re-encoded
 
 
 @pytest.mark.asyncio
-async def test_delete_memory_not_exists(svc, mock_qdrant):
+async def test_update_memory_tags_only(svc, mock_qdrant):
+    mock_point = MagicMock()
+    mock_point.payload = {
+        "content": "unchanged content",
+        "created_at": "2026-01-01T00:00:00Z",
+        "recall_count": 0,
+    }
+    mock_qdrant.retrieve.return_value = [mock_point]
+
+    result = await svc.update_memory(memory_id="test-id", tags=["new-tag"])
+    assert result["updated"] is True
+    assert result["changes"]["tags"] is True
+
+    # Should use set_payload (no vector change)
+    mock_qdrant.set_payload.assert_called_once()
+    call_kwargs = mock_qdrant.set_payload.call_args.kwargs
+    assert call_kwargs["payload"]["tags"] == ["new-tag"]
+    assert call_kwargs["points"] == ["test-id"]
+
+
+@pytest.mark.asyncio
+async def test_update_memory_both(svc, mock_qdrant):
+    mock_point = MagicMock()
+    mock_point.payload = {
+        "content": "old",
+        "created_at": "2026-01-01T00:00:00Z",
+        "recall_count": 0,
+    }
+    mock_qdrant.retrieve.return_value = [mock_point]
+
+    result = await svc.update_memory(
+        memory_id="test-id", content="new", tags=["a", "b"]
+    )
+    assert result["updated"] is True
+    assert result["changes"]["content"] is True
+    assert result["changes"]["tags"] is True
+
+    # Should upsert with new vector (content changed)
+    mock_qdrant.upsert.assert_called_once()
+    call_kwargs = mock_qdrant.upsert.call_args.kwargs
+    point = call_kwargs["points"][0]
+    assert point.payload["content"] == "new"
+    assert point.payload["tags"] == ["a", "b"]
+
+
+@pytest.mark.asyncio
+async def test_update_memory_not_found(svc, mock_qdrant):
     mock_qdrant.retrieve.return_value = []
 
-    result = await svc.delete_memory(memory_id="no-such-id")
-    assert result["deleted"] is False
+    result = await svc.update_memory(memory_id="no-such-id", content="x")
+    assert result["updated"] is False
     assert result["id"] == "no-such-id"
-    mock_qdrant.delete.assert_not_called()
+    assert result["error"] == "not_found"
+    mock_qdrant.upsert.assert_not_called()
+    mock_qdrant.set_payload.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_memory_no_fields(svc, mock_qdrant):
+    mock_qdrant.retrieve.return_value = [MagicMock()]
+
+    result = await svc.update_memory(memory_id="test-id")
+    assert result["updated"] is False
+    assert result["error"] == "no_fields_provided"
+    mock_qdrant.upsert.assert_not_called()
+    mock_qdrant.set_payload.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_memory_empty_content_rejected(svc, mock_qdrant):
+    mock_qdrant.retrieve.return_value = [MagicMock()]
+
+    with pytest.raises(ValueError, match="non-empty"):
+        await svc.update_memory(memory_id="test-id", content="   ")
+
+    with pytest.raises(ValueError, match="non-empty"):
+        await svc.update_memory(memory_id="test-id", content="")
 
 
 @pytest.mark.asyncio

@@ -145,13 +145,16 @@ get_memories(query="动态类型")
 get_memories(query="动态类型", min_score=0.2)
 ```
 
-### `delete_memory(memory_id)`
+### `update_memory(memory_id, content?, tags?)`
 
-按 ID 删除。返回 `{deleted: true/false}` —— false 表示记忆不存在。
+按 ID 更新记忆的内容和/或标签。content 或 tags 至少提供一个。如果提供了 content，向量会重新编码（语义偏移）。返回 `{updated: true, id, changes: {content, tags}}`。
 
 ```
-delete_memory(memory_id="a1b2c3d4-...")
-→ {"deleted": true, "id": "a1b2c3d4-..."}
+update_memory(memory_id="a1b2c3d4-...", content="更新后的文本")
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"content": true}}
+
+update_memory(memory_id="a1b2c3d4-...", tags=["新标签"])
+→ {"updated": true, "id": "a1b2c3d4-...", "changes": {"tags": true}}
 ```
 
 ### Token 成本
@@ -233,7 +236,7 @@ memory-db-manage purge --min-recall-count 0 --unused-days 30 --execute
 ```
 src/memory_simple/
 ├── embedding.py   # 嵌入 API 客户端 (httpx)
-├── service.py     # MemoryService — 核心 store/get/delete
+├── service.py     # MemoryService — 核心 store/get/update
 ├── admin.py       # MemoryAdmin — backup/import/rebuild/purge
 ├── server.py      # MCP server — 暴露 3 个工具
 └── manage.py      # CLI — 管理操作

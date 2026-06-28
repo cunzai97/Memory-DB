@@ -1,4 +1,4 @@
-"""MCP server — 3 tools: store_memory, get_memories, delete_memory."""
+"""MCP server — 3 tools: store_memory, get_memories, update_memory."""
 
 import asyncio
 import logging
@@ -56,15 +56,25 @@ async def get_memories(
 
 
 @mcp.tool()
-async def delete_memory(memory_id: str) -> dict[str, Any]:
-    """Delete a memory by ID. Verify with get_memories first to confirm the right ID. Returns: {deleted, id}."""
+async def update_memory(
+    memory_id: str,
+    content: str | None = None,
+    tags: list[str] | None = None,
+) -> dict[str, Any]:
+    """Update a memory's content and/or tags by ID. At least one of content or tags must be provided. If content is provided, the vector is re-encoded (semantic shift). Returns: {updated: true, id, changes: {content, tags}}."""
     try:
-        return await service.delete_memory(memory_id=memory_id)
+        return await service.update_memory(
+            memory_id=memory_id,
+            content=content,
+            tags=tags,
+        )
+    except ValueError as e:
+        return {"error": str(e), "hint": 'update_memory(memory_id="uuid", content="new text")'}
     except Exception as e:
-        logger.error("delete_memory failed: %s", e)
+        logger.error("update_memory failed: %s", e)
         return {
             "error": f"MEMORY_LAYER_DEGRADED: {e}",
-            "hint": 'delete_memory(memory_id="uuid")',
+            "hint": 'update_memory(memory_id="uuid", content="new text", tags=["tag"])',
         }
 
 

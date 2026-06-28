@@ -23,8 +23,8 @@ Store a memory (text → vector). Dedup threshold ≥ 0.85 replaces semantically
 ### `get_memories(query, limit=5, min_score=0.5)`
 Search memories by cosine similarity. min_score=0.5 (default), 0.8+ for strict matching, <0.3 is noise. Each hit increments `recall_count`. Returns sorted list of `{id, content, score, tags?, recall_count}` or `[]`.
 
-### `delete_memory(memory_id)`
-Delete a memory by ID. Verify with `get_memories` first to confirm the right ID. Returns `{deleted, id}`.
+### `update_memory(memory_id, content?, tags?)`
+Update a memory's content and/or tags by ID. At least one of content or tags must be provided. If content is provided, the vector is re-encoded (semantic shift). Returns: `{updated: true, id, changes: {content, tags}}`.
 
 ## Management CLI (not exposed to MCP)
 
